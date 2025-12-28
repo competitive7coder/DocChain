@@ -18,7 +18,7 @@ const WaitingRoom = () => {
   useEffect(() => {
     fetchWaitingRoom();
 
-    const socket = io('http://localhost:8001');
+    const socket = io('http://localhost:8000');
     
     socket.on('connect', () => {
       console.log('Connected to server');

@@ -25,5 +25,7 @@ router.get('/my-prescriptions', authenticateToken, requireRole('patient'), presc
 
 router.get('/hash/:hashId', prescriptionController.getPrescriptionByHash);
 
+router.post('/redeem/:hashId', authenticateToken, requireRole('pharmacy'), prescriptionController.redeemPrescription);
+
 export default router;
 

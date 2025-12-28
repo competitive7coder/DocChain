@@ -3,21 +3,19 @@ import Visit from '../models/Visit.js';
 import Clinic from '../models/Clinic.js';
 import crypto from 'crypto';
 
-// @desc    I
+// @desc    Issue a prescription (Doctor only)
 // @route   POST /api/prescriptions/issue
 export const issuePrescription = async (req, res) => {
   try {
     const { visitId, medications, notes } = req.body;
     const doctorId = req.user._id;
 
-    //  Fetch visit and populate clinic details to verify ownership
     const visit = await Visit.findById(visitId).populate('clinicId');
 
     if (!visit) {
       return res.status(404).json({ error: 'Visit not found' });
     }
 
-    //  Security: Verify the doctor logged in owns the clinic
     if (visit.clinicId.doctorId.toString() !== doctorId.toString()) {
       return res.status(403).json({ error: 'Access denied: You do not own this clinic' });
     }
@@ -26,7 +24,6 @@ export const issuePrescription = async (req, res) => {
       return res.status(400).json({ error: 'Prescription already issued for this visit' });
     }
 
-    //  Generate a unique hash for secure sharing 
     const hashData = `${visitId}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
     const generatedHash = crypto.createHash('sha256').update(hashData).digest('hex');
 
@@ -37,7 +34,8 @@ export const issuePrescription = async (req, res) => {
       clinicId: visit.clinicId._id, 
       medications,
       notes,
-      hashId: generatedHash
+      hashId: generatedHash,
+      status: 'Active' // Explicitly set initial status
     });
 
     visit.status = 'Completed';
@@ -65,7 +63,8 @@ export const issuePrescription = async (req, res) => {
         doctor: prescription.doctorId,
         medications: prescription.medications,
         notes: prescription.notes,
-        issuedAt: prescription.issuedAt
+        issuedAt: prescription.issuedAt,
+        status: prescription.status
       }
     });
   } catch (error) {
@@ -93,7 +92,8 @@ export const getPatientPrescriptions = async (req, res) => {
         clinic: p.clinicId,
         medications: p.medications,
         notes: p.notes,
-        issuedAt: p.issuedAt
+        issuedAt: p.issuedAt,
+        status: p.status
       }))
     });
   } catch (error) {
@@ -102,35 +102,52 @@ export const getPatientPrescriptions = async (req, res) => {
   }
 };
 
-// @desc    Get a specific prescription by its hashId
+// @desc    Get a specific prescription by its hashId (Pharmacist Verify)
 // @route   GET /api/prescriptions/hash/:hashId
 export const getPrescriptionByHash = async (req, res) => {
   try {
     const { hashId } = req.params;
-
     const prescription = await Prescription.findOne({ hashId })
-      .populate('patientId', 'name email')
-      .populate('doctorId', 'name email')
-      .populate('clinicId', 'name location');
+      .populate('patientId', 'name')   
+      .populate('doctorId', 'name')   
+      .populate('clinicId', 'name');   
 
-    if (!prescription) {
-      return res.status(404).json({ error: 'Prescription not found or invalid QR' });
+    if (!prescription) return res.status(404).json({ error: 'Invalid QR' });
+
+    // FIX: Check if already dispensed
+    if (prescription.status === 'Dispensed') {
+      return res.status(400).json({ 
+        error: 'This prescription has already been dispensed',
+        dispensedAt: prescription.dispensedAt 
+      });
+    }
+    
+    res.json({ prescription });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}; // Added missing closing brace here
+
+// @desc    Mark prescription as dispensed (Pharmacist Collect)
+// @route   POST /api/prescriptions/redeem/:hashId
+export const redeemPrescription = async (req, res) => {
+  try {
+    const { hashId } = req.params;
+    const prescription = await Prescription.findOne({ hashId });
+
+    if (!prescription) return res.status(404).json({ error: 'Prescription not found' });
+
+    // Prevent re-redeeming
+    if (prescription.status === 'Dispensed') {
+      return res.status(400).json({ error: 'This prescription has already been dispensed' });
     }
 
-    res.json({
-      prescription: {
-        id: prescription._id,
-        hashId: prescription.hashId,
-        patient: prescription.patientId,
-        doctor: prescription.doctorId,
-        clinic: prescription.clinicId,
-        medications: prescription.medications,
-        notes: prescription.notes,
-        issuedAt: prescription.issuedAt
-      }
-    });
+    prescription.status = 'Dispensed';
+    prescription.dispensedAt = new Date();
+    await prescription.save();
+
+    res.json({ message: 'Prescription successfully marked as dispensed', prescription });
   } catch (error) {
-    console.error('Hash lookup error:', error);
-    res.status(500).json({ error: 'Failed to retrieve prescription details' });
+    res.status(500).json({ error: error.message });
   }
 };

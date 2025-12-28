@@ -1,12 +1,18 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import Login from './pages/Login';
-import PatientDashboard from './pages/PatientDashboard';
-import DoctorDashboard from './pages/DoctorDashboard';
-import WaitingRoom from './pages/WaitingRoom';
-import PrescriptionForm from './pages/PrescriptionForm';
-import HealthLocker from './pages/HealthLocker';
-import ProtectedRoute from './components/ProtectedRoute';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import Login from "./pages/Login";
+import PatientDashboard from "./pages/PatientDashboard";
+import DoctorDashboard from "./pages/DoctorDashboard";
+import WaitingRoom from "./pages/WaitingRoom";
+import PrescriptionForm from "./pages/PrescriptionForm";
+import HealthLocker from "./pages/HealthLocker";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PharmacyPortal from "./pages/PharmacyPortal";
 
 function App() {
   return (
@@ -14,7 +20,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          
+
           <Route
             path="/patient/dashboard"
             element={
@@ -23,7 +29,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+
           <Route
             path="/doctor/dashboard"
             element={
@@ -48,7 +54,15 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+          <Route
+            path="/pharmacy/dashboard"
+            element={
+              <ProtectedRoute requiredRole="pharmacy">
+                <PharmacyPortal />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>

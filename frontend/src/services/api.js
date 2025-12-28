@@ -95,6 +95,10 @@ export const prescriptionAPI = {
     const response = await axios.get(`${API_BASE_URL}/api/prescriptions/hash/${hashId}`);
     return response.data;
   },
+  redeemPrescription: async (hashId) => {
+    const response = await api.post(`/prescriptions/redeem/${hashId}`);
+    return response.data;
+  },
 };
 
 

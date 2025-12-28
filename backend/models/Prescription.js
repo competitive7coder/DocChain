@@ -29,6 +29,12 @@ const prescriptionSchema = new mongoose.Schema({
     duration: { type: String, required: true },
     instructions: { type: String }
   }],
+  status: {
+    type: String,
+    enum: ['Active', 'Dispensed'],
+    default: 'Active'
+  },
+  dispensedAt: { type: Date },
   hashId: {
     type: String,
     unique: true,

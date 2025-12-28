@@ -10,7 +10,8 @@ router.post('/register', [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').isIn(['patient', 'doctor']).withMessage('Role must be patient or doctor')
+  // FIXED: Added 'pharmacy' and 'admin' to the allowed roles list
+  body('role').isIn(['patient', 'doctor', 'pharmacy', 'admin']).withMessage('Invalid role selection')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -53,6 +54,7 @@ router.post('/register', [
   }
 });
 
+// ... rest of the login and /me routes remain the same as your file
 router.post('/login', [
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').notEmpty().withMessage('Password is required')
@@ -103,4 +105,3 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 export default router;
-
